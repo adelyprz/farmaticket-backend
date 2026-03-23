@@ -17,15 +17,31 @@ app.use(cors()); // Permitir peticiones desde el frontend
 app.use(express.json()); // Parsear JSON
 
 // Configuración de Base de Datos
+// ── Configuración de la Base de Datos ──
 let dbConfig;
 
 if (process.env.DATABASE_URL) {
-    // Usar DATABASE_URL si está disponible
-    dbConfig = process.env.DATABASE_URL;
+    // Parsear DATABASE_URL
+    // Formato: mysql://user:password@host:port/database
+    const url = new URL(process.env.DATABASE_URL);
+    
+    dbConfig = {
+        host: url.hostname,
+        port: url.port || 3306,
+        user: url.username,
+        password: url.password,
+        database: url.pathname.slice(1), // Remover el / inicial
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+    };
+    
+    console.log('Usando DATABASE_URL para conexión');
 } else {
     // Usar variables individuales
     dbConfig = {
         host: process.env.DB_HOST || 'localhost',
+        port: process.env.DB_PORT || 3306,
         user: process.env.DB_USER || 'root',
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_NAME || 'farmaticket',
@@ -33,7 +49,18 @@ if (process.env.DATABASE_URL) {
         connectionLimit: 10,
         queueLimit: 0
     };
+    
+    console.log('Usando variables individuales para conexión');
 }
+
+// Debug (remover en producción)
+console.log('Config DB:', {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    user: dbConfig.user,
+    database: dbConfig.database,
+    hasPassword: !!dbConfig.password
+});
 
 // Crear pool de conexiones
 const pool = mysql.createPool(dbConfig);
@@ -42,10 +69,10 @@ const pool = mysql.createPool(dbConfig);
 async function testConnection() {
     try {
         const connection = await pool.getConnection();
-        console.log('✅ Conectado a MySQL exitosamente');
+        console.log('Conectado a MySQL exitosamente');
         connection.release();
     } catch (error) {
-        console.error('❌ Error conectando a MySQL:', error.message);
+        console.error('Error conectando a MySQL:', error.message);
         process.exit(1);
     }
 }
@@ -554,7 +581,7 @@ app.get('/api/reportes/diario', async (req, res) => {
 
 app.get('/api/test', (req, res) => {
     res.json({ 
-        message: '✅ FarmaTicket API funcionando correctamente',
+        message: 'FarmaTicket API funcionando correctamente',
         timestamp: new Date(),
         version: '1.0.0'
     });
@@ -567,7 +594,7 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════════╗
-║       🚀 FARMATICKET API SERVER           ║
+║           FARMATICKET API SERVER           ║
 ╠════════════════════════════════════════════╣
 ║  Puerto: ${PORT}                           
 ║  URL: http://localhost:${PORT}             
@@ -578,5 +605,5 @@ app.listen(PORT, () => {
 
 // Manejo de errores no capturados
 process.on('unhandledRejection', (error) => {
-    console.error('❌ Error no manejado:', error);
+    console.error('Error no manejado:', error);
 });
