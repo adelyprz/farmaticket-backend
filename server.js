@@ -16,16 +16,24 @@ const PORT = process.env.PORT || 3000;
 app.use(cors()); // Permitir peticiones desde el frontend
 app.use(express.json()); // Parsear JSON
 
-// ── Configuración de la Base de Datos ──
-const dbConfig = {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'farmaticket',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-};
+// Configuración de Base de Datos
+let dbConfig;
+
+if (process.env.DATABASE_URL) {
+    // Usar DATABASE_URL si está disponible
+    dbConfig = process.env.DATABASE_URL;
+} else {
+    // Usar variables individuales
+    dbConfig = {
+        host: process.env.DB_HOST || 'localhost',
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: process.env.DB_NAME || 'farmaticket',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+    };
+}
 
 // Crear pool de conexiones
 const pool = mysql.createPool(dbConfig);
